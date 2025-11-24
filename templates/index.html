@@ -1,0 +1,29 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Steganography Tool</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<nav>
+    <ul>
+        <li><a href="{{ url_for('index') }}">Encode</a></li>
+        <li><a href="{{ url_for('decode') }}">Decode</a></li>
+    </ul>
+</nav>
+<div class="container">
+<h1>Steganography Tool - Dark Theme</h1>
+<p>Upload image and secret message. Choose algorithm.</p>
+<form method="POST" action="#" enctype="multipart/form-data">
+<label>Secret Text</label><textarea name="message"></textarea>
+<label>Image</label><input type="file" name="image">
+<label>Algorithm</label>
+<select name="algorithm">
+<option value="LSB">LSB</option>
+<option value="PVD">PVD</option>
+<option value="DCT">DCT</option>
+</select>
+<button type="submit">Encode</button>
+</form>
+</div></body></html>

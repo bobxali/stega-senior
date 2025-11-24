@@ -1,0 +1,11 @@
+
+body{background:#121212;color:#e0e0e0;font-family:Arial;margin:0;padding:0;}
+nav{background:#0d0d0d;padding:15px 0;box-shadow:0 2px 8px rgba(0,0,0,0.7);border-bottom:2px solid #3b82f6;}
+nav ul{list-style:none;margin:0;padding:0 20px;display:flex;gap:30px;}
+nav ul li a{color:#e0e0e0;text-decoration:none;font-size:16px;font-weight:bold;transition:color 0.3s;}
+nav ul li a:hover{color:#3b82f6;}
+.container{background:#1e1e1e;padding:30px;margin:40px auto;border-radius:20px;max-width:600px;box-shadow:0 0 15px rgba(0,0,0,0.5);}
+label{display:block;margin-top:15px;margin-bottom:5px;}
+textarea,input,select{width:100%;background:#2a2a2a;border:1px solid #444;color:white;border-radius:8px;padding:10px;margin-bottom:10px;}
+button{background:#3b82f6;border:none;color:white;padding:12px 18px;border-radius:10px;cursor:pointer;font-size:16px;}
+button:hover{background:#2563eb;}

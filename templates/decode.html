@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Decode Steganography</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<nav>
+    <ul>
+        <li><a href="{{ url_for('index') }}">Encode</a></li>
+        <li><a href="{{ url_for('decode') }}">Decode</a></li>
+    </ul>
+</nav>
+<div class="container">
+    <h1>Decode Image</h1>
+    <p>Upload an encoded image and choose the algorithm used to encode it.</p>
+    <form method="POST" action="/decode" enctype="multipart/form-data">
+        <label>Image</label><input type="file" name="image">
+        <label>Algorithm</label>
+        <select name="algorithm">
+            <option value="AUTO">Auto-Detect</option>
+            <option value="LSB">LSB</option>
+            <option value="PVD">PVD</option>
+            <option value="DCT">DCT</option>
+        </select>
+        <button type="submit">Decode</button>
+    </form>
+
+    {% if message is not none %}
+    <h2>Decoded Message</h2>
+    {% if algorithm %}
+    <p><em>Algorithm: {{ algorithm }}</em></p>
+    {% endif %}
+    <pre>{{ message }}</pre>
+    {% endif %}
+
+    <p><a href="{{ url_for('index') }}">Back to encode</a></p>
+</div>
+</body>
+</html>
