@@ -1,16 +1,23 @@
 
 from PIL import Image
+from algorithms.capacity import StegoCapacity
 
 DELIMITER = b'<<END>>'
+
 
 def _to_bits(data: bytes) -> str:
     return ''.join(f'{byte:08b}' for byte in data)
 
+
 def _from_bits(bitstr: str) -> bytes:
     return bytes(int(bitstr[i:i+8],2) for i in range(0,len(bitstr),8))
 
+
 def encode_pil(img: Image.Image, payload: bytes) -> Image.Image:
     img = img.convert('RGB')
+    available = StegoCapacity.lsb_bytes(img, len(DELIMITER))
+    if len(payload) > available:
+        raise ValueError(f"Payload too large for image capacity ({available} bytes available)")
     data = payload + DELIMITER
     bits = _to_bits(data)
     w,h = img.size
@@ -26,6 +33,7 @@ def encode_pil(img: Image.Image, payload: bytes) -> Image.Image:
     out = Image.new('RGB', (w,h))
     out.putdata(new_pixels)
     return out
+
 
 def decode_pil(img: Image.Image) -> bytes:
     img = img.convert('RGB')

@@ -13,17 +13,77 @@
     </ul>
 </nav>
 <div class="container">
-<h1>Steganography Tool - Dark Theme</h1>
-<p>Upload image and secret message. Choose algorithm.</p>
+<h1>Steganography Studio</h1>
+<p>Encode secret messages into images and inspect fidelity.</p>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="toast-container">
+      {% for msg in messages %}
+        <div class="toast">{{ msg }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
 <form method="POST" action="#" enctype="multipart/form-data">
-<label>Secret Text</label><textarea name="message"></textarea>
-<label>Image</label><input type="file" name="image">
+<label>Secret Text</label><textarea name="message">{{ message_value or '' }}</textarea>
+<label>Image</label>
+<input type="file" name="image" {% if current_image %}style="display:none;"{% endif %}>
+{% if current_image %}
+  <div class="preview">
+    <span class="file-name">{{ current_image }}</span>
+    <button type="submit" name="action" value="clear" class="clear-btn">X</button>
+  </div>
+  <input type="hidden" name="current_image" value="{{ current_image }}">
+{% endif %}
 <label>Algorithm</label>
 <select name="algorithm">
-<option value="LSB">LSB</option>
-<option value="PVD">PVD</option>
-<option value="DCT">DCT</option>
+<option value="LSB" {% if selected_algorithm == 'LSB' %}selected{% endif %}>LSB</option>
+<option value="PVD" {% if selected_algorithm == 'PVD' %}selected{% endif %}>PVD</option>
+<option value="DCT" {% if selected_algorithm == 'DCT' %}selected{% endif %}>DCT</option>
 </select>
-<button type="submit">Encode</button>
+<div class="actions">
+    <button type="submit" name="action" value="encode" class="primary">Encode</button>
+    <button type="submit" name="action" value="capacity" class="ghost">Check Capacity</button>
+</div>
 </form>
+{% if capacity_info %}
+<div style="margin-top:20px;">
+    <h3>Capacity</h3>
+    <div class="chip-row">
+        <span class="chip">LSB: {{ capacity_info['LSB'] }} bytes</span>
+        <span class="chip">PVD: {{ capacity_info['PVD'] }} bytes</span>
+        <span class="chip">DCT: {{ capacity_info['DCT'] }} bytes</span>
+    </div>
+</div>
+{% endif %}
+{% if encoded_image %}
+<div class="metrics-section" style="margin-top:30px; display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap:20px; align-items:start;">
+  <div class="panel">
+    <h3>Source</h3>
+    <img src="{{ url_for('uploaded_file', filename=current_image) }}" alt="Original image" style="width:100%;max-height:240px;object-fit:contain;border:1px solid #333;border-radius:8px;">
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <a class="btn" href="{{ url_for('uploaded_file', filename=current_image) }}" target="_blank">View</a>
+      <a class="btn" href="{{ url_for('uploaded_file', filename=current_image) }}" download>Download</a>
+    </div>
+  </div>
+  <div class="panel" style="border-left:1px solid #333; padding-left:15px;">
+    <h3>Encoded</h3>
+    <img src="{{ url_for('uploaded_file', filename=encoded_image) }}" alt="Encoded image" style="width:100%;max-height:240px;object-fit:contain;border:1px solid #333;border-radius:8px;">
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <a class="btn" href="{{ url_for('uploaded_file', filename=encoded_image) }}" target="_blank">View</a>
+      <a class="btn" href="{{ url_for('uploaded_file', filename=encoded_image) }}" download>Download</a>
+    </div>
+  </div>
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h3>Quality Metrics</h3>
+    <div class="chip-row">
+      <span class="chip">PSNR: {{ '%.2f' % metrics_info['psnr'] }} dB</span>
+      <span class="chip">SSIM: {{ '%.4f' % metrics_info['ssim'] }}</span>
+    </div>
+    <p class="note">PSNR: higher is better; visually lossless is typically &gt; 40 dB.</p>
+    <p class="note">SSIM: ranges 0–1; closer to 1.0 is better.</p>
+  </div>
+</div>
+{% endif %}
 </div></body></html>
