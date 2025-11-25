@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,8 +12,28 @@
     </ul>
 </nav>
 <div class="container">
-<h1>Steganography Studio</h1>
-<p>Encode secret messages into images and inspect fidelity.</p>
+<div class="hero">
+  <div>
+    <h1>Steganography Studio</h1>
+    <p class="lead">A senior project by Ayoub Ali. Hide and reveal messages inside images, then check visual fidelity.</p>
+    <div class="chip-row">
+      <span class="chip">Steganography: concealing data within ordinary media</span>
+      <span class="chip">Use lossless formats (PNG/BMP) for best results</span>
+    </div>
+    <div class="actions" style="margin-top:16px;">
+      <a class="btn primary" href="#encode-form">Start Encoding</a>
+    </div>
+  </div>
+  <div class="note-card">
+    <h3>Before you start</h3>
+    <ul class="bullet">
+      <li>Upload a clear, lossless image (PNG/BMP recommended).</li>
+      <li>Pick an algorithm: LSB (high capacity), PVD (balanced), DCT (robust, lower capacity).</li>
+      <li>Use “Check Capacity” to ensure your message fits.</li>
+      <li>Download the encoded image and decode anytime.</li>
+    </ul>
+  </div>
+</div>
 {% with messages = get_flashed_messages() %}
   {% if messages %}
     <div class="toast-container">
@@ -25,7 +44,7 @@
   {% endif %}
 {% endwith %}
 
-<form method="POST" action="#" enctype="multipart/form-data">
+<form id="encode-form" method="POST" action="#" enctype="multipart/form-data">
 <label>Secret Text</label><textarea name="message">{{ message_value or '' }}</textarea>
 <label>Image</label>
 <input type="file" name="image" {% if current_image %}style="display:none;"{% endif %}>
@@ -82,8 +101,10 @@
       <span class="chip">SSIM: {{ '%.4f' % metrics_info['ssim'] }}</span>
     </div>
     <p class="note">PSNR: higher is better; visually lossless is typically &gt; 40 dB.</p>
-    <p class="note">SSIM: ranges 0–1; closer to 1.0 is better.</p>
+    <p class="note">SSIM: ranges 0-1; closer to 1.0 is better.</p>
   </div>
 </div>
 {% endif %}
-</div></body></html>
+</div>
+<footer style="text-align:center; color:#99a3b3; padding:16px 0;">Crafted by Ayoub Ali</footer>
+</body></html>

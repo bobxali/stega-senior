@@ -41,6 +41,7 @@ nav ul li a:hover{color:var(--accent);}
 }
 h1{margin:0 0 10px;font-weight:700;letter-spacing:0.5px;}
 p{color:var(--muted);margin-top:0;}
+.lead{color:var(--text);font-size:16px;line-height:1.5;margin-bottom:6px;}
 label{display:block;margin-top:15px;margin-bottom:6px;font-weight:600;}
 textarea,input,select{
   width:100%;
@@ -89,6 +90,8 @@ button:hover, .btn:hover{background:#2563eb;}
   border-radius:999px;
   font-size:13px;
 }
+.bullet{color:var(--muted);padding-left:18px;margin:8px 0;}
+.bullet li{margin:4px 0;}
 .metrics-section .panel{
   background:rgba(255,255,255,0.02);
   border:1px solid var(--border);
@@ -99,3 +102,14 @@ button:hover, .btn:hover{background:#2563eb;}
 .note{color:var(--muted);margin:4px 0;}
 img{max-width:100%;}
 .flash-messages{display:none;}
+.hero{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;margin-bottom:16px;}
+.note-card{
+  background:rgba(255,255,255,0.02);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px;
+  box-shadow:0 6px 15px rgba(0,0,0,0.25);
+}
+@media (max-width:768px){
+  .hero{grid-template-columns:1fr;}
+}
