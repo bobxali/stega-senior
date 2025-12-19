@@ -23,10 +23,8 @@ Thumbs.db
 
 # Uploads and temp files
 uploads/
-*.png
-*.jpg
-*.jpeg
-*.gif
+# Allow committed library/sample images by only ignoring uploads
+# (add your library images under images/ and they'll be tracked)
 
 # Environment
 .env
