@@ -5,33 +5,23 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-<nav>
-    <ul>
-        <li><a href="{{ url_for('index') }}">Encode</a></li>
-        <li><a href="{{ url_for('decode') }}">Decode</a></li>
-    </ul>
+<nav class="topnav">
+  <div class="brand">Steganography Studio</div>
+  <ul>
+      <li><a href="{{ url_for('index') }}" class="active">Encode</a></li>
+      <li><a href="{{ url_for('decode') }}">Decode</a></li>
+      <li><a href="{{ url_for('steganalysis') }}">Steganalysis</a></li>
+  </ul>
 </nav>
 <div class="container">
 <div class="hero">
   <div>
     <h1>Steganography Studio</h1>
-    <p class="lead">A senior project by Ayoub Ali. Hide and reveal messages inside images, then check visual fidelity.</p>
+    <p class="lead">Hide and reveal messages inside images. Keep the image visually unchanged.</p>
     <div class="chip-row">
-      <span class="chip">Steganography: concealing data within ordinary media</span>
-      <span class="chip">Use lossless formats (PNG/BMP) for best results</span>
+      <span class="chip">Use lossless PNG/BMP for best results</span>
+      <span class="chip">LSB = capacity, PVD = balance, DCT = robustness</span>
     </div>
-    <div class="actions" style="margin-top:16px;">
-      <a class="btn primary" href="#encode-form">Start Encoding</a>
-    </div>
-  </div>
-  <div class="note-card">
-    <h3>Before you start</h3>
-    <ul class="bullet">
-      <li>Upload a clear, lossless image (PNG/BMP recommended).</li>
-      <li>Pick an algorithm: LSB (high capacity), PVD (balanced), DCT (robust, lower capacity).</li>
-      <li>Use “Check Capacity” to ensure your message fits.</li>
-      <li>Download the encoded image and decode anytime.</li>
-    </ul>
   </div>
 </div>
 {% with messages = get_flashed_messages() %}
@@ -45,27 +35,100 @@
 {% endwith %}
 
 <form id="encode-form" method="POST" action="#" enctype="multipart/form-data">
-<label>Secret Text</label><textarea name="message">{{ message_value or '' }}</textarea>
-<label>Image</label>
-<input type="file" name="image" {% if current_image %}style="display:none;"{% endif %}>
-{% if current_image %}
-  <div class="preview">
-    <span class="file-name">{{ current_image }}</span>
-    <button type="submit" name="action" value="clear" class="clear-btn">X</button>
+<div class="panel stack">
+  <h3 style="margin:0 0 6px;">Payload</h3>
+  <div class="segmented">
+    <label><input type="radio" name="payload_type" value="text" {% if payload_type != 'file' %}checked{% endif %}> Text</label>
+    <label><input type="radio" name="payload_type" value="file" {% if payload_type == 'file' %}checked{% endif %}> File</label>
   </div>
-  <input type="hidden" name="current_image" value="{{ current_image }}">
-{% endif %}
-<label>Algorithm</label>
-<select name="algorithm">
-<option value="LSB" {% if selected_algorithm == 'LSB' %}selected{% endif %}>LSB</option>
-<option value="PVD" {% if selected_algorithm == 'PVD' %}selected{% endif %}>PVD</option>
-<option value="DCT" {% if selected_algorithm == 'DCT' %}selected{% endif %}>DCT</option>
-</select>
+  <div id="text-block">
+    <label>Secret Text</label>
+    <textarea name="message" placeholder="Used when Payload Type is Text" id="message-input">{{ message_value or '' }}</textarea>
+  </div>
+  <div id="file-block">
+    <label>Payload File</label>
+    <input type="file" name="payload_file" id="payload-file-input">
+  </div>
+  <div class="chip-row slim" id="payload-stats">
+    <span class="chip" id="payload-size-chip">Payload: 0 bytes</span>
+    <span class="chip" id="capacity-chip">Capacity: unknown</span>
+  </div>
+  <div class="meter-shell"><div class="meter-bar" id="fill-meter"></div></div>
+  <p class="note" id="fit-note">Enter text or choose a file to estimate fit.</p>
+</div>
+
+<div class="panel stack">
+  <h3 style="margin:0 0 6px;">Cover Image</h3>
+  <div class="segmented">
+    <label><input type="radio" name="image_mode" value="upload" {% if not library_selected %}checked{% endif %}> Upload</label>
+    <label><input type="radio" name="image_mode" value="library" {% if library_selected %}checked{% endif %}> Library</label>
+  </div>
+  <div id="upload-block">
+    <div id="drop-zone">
+      <p class="note" style="margin:0;">Drag & drop an image here, or click to browse.</p>
+      <input type="file" name="image" id="image-input" {% if current_image %}style="display:none;"{% endif %}>
+    </div>
+  </div>
+  <div id="library-block" class="hidden">
+    <div class="library-list">
+      <div class="library-head">
+        <div>
+          <div class="label">Library images</div>
+          <p class="note" style="margin:2px 0 0 0;">From images/ folder</p>
+        </div>
+        <div class="note">Pick one row to use as cover.</div>
+      </div>
+      {% if available_images %}
+      <div class="library-table">
+        {% for img in available_images %}
+        <label class="library-row {% if library_selected == img.filename %}active{% endif %}" data-capacity="{{ img.capacity }}">
+          <input type="radio" name="library_image" value="{{ img.filename }}" {% if library_selected == img.filename %}checked{% endif %}>
+          <img class="lib-thumb" src="{{ url_for('library_file', filename=img.filename) }}" alt="{{ img.filename }}">
+          <span class="name">{{ img.filename }}</span>
+          <span class="muted">{{ img.width }}x{{ img.height }}</span>
+          <span class="muted">Cap: {{ img.capacity }} bytes</span>
+          <button type="button" class="btn ghost preview-btn" data-src="{{ url_for('library_file', filename=img.filename) }}">Preview</button>
+        </label>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="note" style="margin-top:6px;">Add images to the images/ folder to see them here.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% if current_image %}
+    <div class="preview">
+      <span class="file-name">{{ current_image }}</span>
+      <button type="submit" name="action" value="clear" class="clear-btn">X</button>
+    </div>
+    <input type="hidden" name="current_image" value="{{ current_image }}">
+  {% endif %}
+</div>
+
+<div class="panel stack">
+  <div class="accordion">
+    <button type="button" class="accordion-toggle" aria-expanded="false">Advanced options</button>
+    <div class="accordion-body" hidden>
+      <label>Key (optional)</label><input type="password" name="key" value="{{ key_value or '' }}" placeholder="Use the same key to decode">
+      <label>Algorithm</label>
+      <select name="algorithm">
+      <option value="LSB" {% if selected_algorithm == 'LSB' %}selected{% endif %}>LSB (capacity)</option>
+      <option value="PVD" {% if selected_algorithm == 'PVD' %}selected{% endif %}>PVD (balanced)</option>
+      <option value="DCT" {% if selected_algorithm == 'DCT' %}selected{% endif %}>DCT (robust)</option>
+      </select>
+      <div class="actions" style="margin-top:8px;">
+          <button type="submit" name="action" value="recommend" class="ghost">Recommend</button>
+          <button type="submit" name="action" value="capacity" class="ghost">Check Capacity</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="actions">
     <button type="submit" name="action" value="encode" class="primary">Encode</button>
-    <button type="submit" name="action" value="capacity" class="ghost">Check Capacity</button>
 </div>
 </form>
+
 {% if capacity_info %}
 <div style="margin-top:20px;">
     <h3>Capacity</h3>
@@ -74,6 +137,23 @@
         <span class="chip">PVD: {{ capacity_info['PVD'] }} bytes</span>
         <span class="chip">DCT: {{ capacity_info['DCT'] }} bytes</span>
     </div>
+</div>
+{% endif %}
+{% if recommendation %}
+<div style="margin-top:12px;">
+  <h3>Recommendation</h3>
+  <div class="chip-row">
+    <span class="chip">Use: {{ recommendation['algorithm'] }}</span>
+    <span class="chip">Reason: {{ recommendation['reason'] }}</span>
+  </div>
+  {% if suggestion_note %}
+    <p class="note">{{ suggestion_note }}</p>
+  {% endif %}
+</div>
+{% endif %}
+{% if suggested_image %}
+<div style="margin-top:8px;">
+  <p class="note">Suggested image: {{ suggested_image['filename'] }} (capacity {{ suggested_image['capacity'] }} bytes) in uploads/</p>
 </div>
 {% endif %}
 {% if encoded_image %}
@@ -107,4 +187,192 @@
 {% endif %}
 </div>
 <footer style="text-align:center; color:#99a3b3; padding:16px 0;">Crafted by Ayoub Ali</footer>
+
+<div id="modal-overlay" style="display:none;">
+  <div id="modal-content">
+    <button type="button" id="modal-close">Close</button>
+    <img id="modal-image" src="" alt="Preview">
+  </div>
+</div>
+
+<script>
+(function(){
+  const payloadTypeInputs = document.querySelectorAll('input[name="payload_type"]');
+  const messageInput = document.getElementById('message-input');
+  const payloadFileInput = document.getElementById('payload-file-input');
+  const textBlock = document.getElementById('text-block');
+  const fileBlock = document.getElementById('file-block');
+  const imageInput = document.getElementById('image-input');
+  const imageModeInputs = document.querySelectorAll('input[name="image_mode"]');
+  const uploadBlock = document.getElementById('upload-block');
+  const libraryBlock = document.getElementById('library-block');
+  const payloadSizeChip = document.getElementById('payload-size-chip');
+  const capacityChip = document.getElementById('capacity-chip');
+  const fillMeter = document.getElementById('fill-meter');
+  const fitNote = document.getElementById('fit-note');
+  const dropZone = document.getElementById('drop-zone');
+  const libraryRows = Array.from(document.querySelectorAll('.library-row'));
+  const modal = document.getElementById('modal-overlay');
+  const modalImg = document.getElementById('modal-image');
+  const modalClose = document.getElementById('modal-close');
+  const accordionToggle = document.querySelector('.accordion-toggle');
+  const accordionBody = document.querySelector('.accordion-body');
+
+  const RESERVE = 6; // bytes reserved in LSB capacity calculation
+
+  function human(n){
+    if (n >= 1e6) return (n/1e6).toFixed(2)+' MB';
+    if (n >= 1e3) return (n/1e3).toFixed(1)+' KB';
+    return n + ' bytes';
+  }
+
+  function currentPayloadBytes(){
+    const type = Array.from(payloadTypeInputs).find(r=>r.checked)?.value || 'text';
+    if (type === 'file') {
+      const f = payloadFileInput.files?.[0];
+      if (!f) return 0;
+      const nameLen = (f.name || '').length;
+      return f.size + 8 + nameLen; // FILE_MAGIC + name length
+    } else {
+      return new TextEncoder().encode(messageInput.value || '').length;
+    }
+  }
+
+  function capacityFromImageDims(w,h){
+    const bits = w * h * 3;
+    return Math.max(0, Math.floor(bits/8) - RESERVE);
+  }
+
+  function selectedLibraryCapacity(){
+    const selected = libraryRows.find(row => row.querySelector('input[type="radio"]').checked);
+    if (!selected) return null;
+    return parseInt(selected.dataset.capacity || '0', 10);
+  }
+
+  function updateMeter(capacity){
+    const payloadBytes = currentPayloadBytes();
+    payloadSizeChip.textContent = 'Payload: ' + human(payloadBytes);
+    if (!capacity || capacity <= 0){
+      capacityChip.textContent = 'Capacity: unknown';
+      fillMeter.style.width = '0%';
+      fitNote.textContent = 'Select or upload an image to estimate fit.';
+      fillMeter.style.background = '#3b82f6';
+      return;
+    }
+    capacityChip.textContent = 'Capacity: ' + human(capacity);
+    const ratio = Math.min(1, capacity ? payloadBytes / capacity : 0);
+    fillMeter.style.width = (ratio*100).toFixed(0) + '%';
+    if (payloadBytes === 0){
+      fitNote.textContent = 'Enter text or choose a file to estimate fit.';
+    } else if (payloadBytes <= capacity){
+      if (ratio < 0.7){
+        fillMeter.style.background = '#22c55e';
+        fitNote.textContent = 'Fits comfortably.';
+      } else if (ratio < 0.9){
+        fillMeter.style.background = '#f59e0b';
+        fitNote.textContent = 'Fits, but close to the limit.';
+      } else {
+        fillMeter.style.background = '#ef4444';
+        fitNote.textContent = 'Fits, but very tight. Consider a larger image.';
+      }
+    } else {
+      fillMeter.style.background = '#ef4444';
+      fitNote.textContent = 'Too large for this image.';
+    }
+  }
+
+  function updateFromLibrary(){
+    const cap = selectedLibraryCapacity();
+    if (cap){
+      updateMeter(cap);
+    }
+  }
+
+  function handlePreview(src){
+    modalImg.src = src;
+    modal.style.display = 'flex';
+  }
+
+  function initDropZone(){
+    if (!dropZone || !imageInput) return;
+    dropZone.addEventListener('click', ()=> imageInput.click());
+    dropZone.addEventListener('dragover', (e)=>{e.preventDefault(); dropZone.classList.add('drag');});
+    dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag'));
+    dropZone.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      dropZone.classList.remove('drag');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]){
+        imageInput.files = e.dataTransfer.files;
+        estimateCapacityFromUpload(e.dataTransfer.files[0]);
+      }
+    });
+    imageInput.addEventListener('change', ()=>{
+      const f = imageInput.files?.[0];
+      if (f) estimateCapacityFromUpload(f);
+    });
+  }
+
+  function estimateCapacityFromUpload(file){
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function(){
+      const cap = capacityFromImageDims(img.width, img.height);
+      updateMeter(cap);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = function(){
+      updateMeter(null);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  // wire events
+  function togglePayloadFields(){
+    const type = Array.from(payloadTypeInputs).find(r=>r.checked)?.value || 'text';
+    if (textBlock) textBlock.classList.toggle('hidden', type !== 'text');
+    if (fileBlock) fileBlock.classList.toggle('hidden', type !== 'file');
+    updateMeter(selectedLibraryCapacity());
+  }
+
+  function toggleImageMode(){
+    const mode = Array.from(imageModeInputs).find(r=>r.checked)?.value || 'upload';
+    if (uploadBlock) uploadBlock.classList.toggle('hidden', mode !== 'upload');
+    if (libraryBlock) libraryBlock.classList.toggle('hidden', mode !== 'library');
+    updateMeter(selectedLibraryCapacity());
+  }
+
+  payloadTypeInputs.forEach(r=> r.addEventListener('change', togglePayloadFields));
+  messageInput?.addEventListener('input', ()=> updateMeter(selectedLibraryCapacity()));
+  payloadFileInput?.addEventListener('change', ()=> updateMeter(selectedLibraryCapacity()));
+  imageModeInputs.forEach(r=> r.addEventListener('change', toggleImageMode));
+  libraryRows.forEach(row=>{
+    const radio = row.querySelector('input[type="radio"]');
+    radio.addEventListener('change', updateFromLibrary);
+    const btn = row.querySelector('.preview-btn');
+    btn.addEventListener('click', ()=> handlePreview(btn.dataset.src));
+  });
+  modalClose?.addEventListener('click', ()=> { modal.style.display='none'; modalImg.src=''; });
+  modal?.addEventListener('click', (e)=> { if (e.target === modal) { modal.style.display='none'; modalImg.src=''; }});
+
+  if (accordionToggle && accordionBody){
+    accordionToggle.addEventListener('click', ()=>{
+      const expanded = accordionToggle.getAttribute('aria-expanded') === 'true';
+      accordionToggle.setAttribute('aria-expanded', (!expanded).toString());
+      accordionBody.hidden = expanded;
+    });
+  }
+
+  initDropZone();
+
+  // initial meter state
+  togglePayloadFields();
+  toggleImageMode();
+  if (libraryRows.some(row => row.querySelector('input[type="radio"]').checked)){
+    updateFromLibrary();
+  } else {
+    updateMeter(null);
+  }
+})();
+</script>
 </body></html>

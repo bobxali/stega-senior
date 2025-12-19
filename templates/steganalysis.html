@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Steganalysis</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<nav class="topnav">
+  <div class="brand">Steganography Studio</div>
+  <ul>
+      <li><a href="{{ url_for('index') }}">Encode</a></li>
+      <li><a href="{{ url_for('decode') }}">Decode</a></li>
+      <li><a href="{{ url_for('steganalysis') }}" class="active">Steganalysis</a></li>
+  </ul>
+</nav>
+<div class="container">
+  <div class="hero">
+    <div>
+      <h1>Steganalysis</h1>
+      <p class="lead">Heuristic check for hidden data. Results are not proof; expect possible false positives/negatives.</p>
+      <div class="chip-row">
+        <span class="chip">LSB χ² / RS (LSB clues)</span>
+        <span class="chip">DCT asymmetry (DCT clues)</span>
+        <span class="chip">Residual energy (noise)</span>
+      </div>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="toast-container">
+        {% for msg in messages %}
+          <div class="toast">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('steganalysis') }}" enctype="multipart/form-data">
+    <div class="panel stack">
+      <label>Image</label>
+      <input type="file" name="image" required>
+      <p class="note">Supported: PNG/JPG/BMP/TIFF. Larger, clean images give better signals.</p>
+      <div class="actions">
+        <button type="submit" class="primary">Run Steganalysis</button>
+      </div>
+    </div>
+  </form>
+
+  {% if analysis %}
+  <div class="panel stack" style="margin-top:16px;">
+    <h3 style="margin:0 0 8px;">Result</h3>
+    {% if image_name %}<p class="note">Image: {{ image_name }}</p>{% endif %}
+    <div class="chip-row">
+      <span class="chip">Overall: {{ analysis['label'] }}</span>
+      <span class="chip">Score: {{ '%.2f' % analysis['overall'] }}</span>
+    </div>
+    <div class="chip-row" style="margin-top:8px;">
+      <span class="chip">LSB χ²: {{ '%.2f' % analysis['scores']['lsb_chi'] }} ({{ analysis['labels']['lsb_chi'] }})</span>
+      <span class="chip">RS: {{ '%.2f' % analysis['scores']['rs'] }} ({{ analysis['labels']['rs'] }})</span>
+      <span class="chip">DCT asym: {{ '%.2f' % analysis['scores']['dct_asym'] }} ({{ analysis['labels']['dct_asym'] }})</span>
+      <span class="chip">Residual: {{ '%.2f' % analysis['scores']['residual'] }} ({{ analysis['labels']['residual'] }})</span>
+    </div>
+    <div class="note-card" style="margin-top:10px;">
+      <h4 style="margin:0 0 6px;">How to read</h4>
+      <ul class="bullet">
+        <li>Overall is an average of signals; it is not proof of hidden data.</li>
+        <li>LSB χ² / RS: higher suggests possible LSB-style embedding.</li>
+        <li>DCT asym: higher suggests possible DCT-domain embedding.</li>
+        <li>Residual: higher can come from noise/compression or tampering.</li>
+        <li>Expect false positives/negatives—use as a suspicion indicator only.</li>
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+</div>
+<footer style="text-align:center; color:#99a3b3; padding:16px 0;">Crafted by Ayoub Ali</footer>
+</body>
+</html>

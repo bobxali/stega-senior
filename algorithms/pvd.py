@@ -1,14 +1,17 @@
 
+from typing import Optional
 from PIL import Image
 from algorithms.capacity import RANGES, StegoCapacity
+from algorithms.key_utils import shuffled_indices
 
-# Pairs of differences and corresponding widths
+# Pixel Value Differencing (PVD) steganography on green channel only
+# RANGES defines difference buckets (L,U) that set bits per pair; imported from capacity
 
 
 def _bits_needed(d: int) -> int:
     import math
-    for L, U in RANGES:
-        if L <= d <= U:
+    for L, U in RANGES:  # L = lower bound, U = upper bound of difference bucket
+        if L <= d <= U:  # d = observed absolute difference
             return int(math.floor(math.log2(U - L + 1)))
     return 1
 
@@ -27,7 +30,7 @@ def _embed_pair(p1: int, p2: int, d_new: int) -> tuple[int, int]:
     preserving which pixel was originally larger.
     """
     def adjust(a, b, target_diff):
-        # ensure a >= b
+        # ensure a >= b (a,b are the two pixel intensities we can modify)
         a = int(a); b = int(b)
         # initial attempt
         a_new = min(255, max(0, a))
@@ -57,27 +60,31 @@ def _embed_pair(p1: int, p2: int, d_new: int) -> tuple[int, int]:
     return b, a
 
 
-def encode_pil(img: Image.Image, payload: bytes) -> Image.Image:
+def encode_pil(img: Image.Image, payload: bytes, key: Optional[str] = None) -> Image.Image:
     # Preserve color by embedding only in the green channel
     img_rgb = img.convert("RGB")
     r, g, b = img_rgb.split()
-    channel = list(g.getdata())
+    channel = list(g.getdata())  # working array of green intensities
 
-    data_with_len = len(payload).to_bytes(4, "big") + payload
-    bits = _to_bits(data_with_len)
+    data_with_len = len(payload).to_bytes(4, "big") + payload  # 32-bit length header + payload
+    bits = _to_bits(data_with_len)  # bitstream to embed
 
-    cap = StegoCapacity.pvd_bytes(img_rgb) * 8
+    cap = StegoCapacity.pvd_bytes(img_rgb) * 8  # capacity in bits
     if len(bits) > cap:
         raise ValueError(f"Payload too large for image capacity ({cap // 8} bytes available)")
 
     new_channel = channel.copy()
+    pairs = list(range(0, len(channel) - 1, 2))
+    if key:
+        order = shuffled_indices(len(pairs), key, salt="pvd")
+        pairs = [pairs[i] for i in order]
     idx = 0
-    for i in range(0, len(channel) - 1, 2):
+    for i in pairs:
         if idx >= len(bits):
             break
         p1, p2 = channel[i], channel[i + 1]
-        d = abs(p1 - p2)
-        nbits = _bits_needed(d)
+        d = abs(p1 - p2)  # current difference
+        nbits = _bits_needed(d)  # width based on current difference bucket
         chunk = bits[idx : idx + nbits]
         if len(chunk) < nbits:
             chunk = chunk.ljust(nbits, "0")
@@ -96,18 +103,22 @@ def encode_pil(img: Image.Image, payload: bytes) -> Image.Image:
     return encoded
 
 
-def decode_pil(img: Image.Image) -> bytes:
+def decode_pil(img: Image.Image, key: Optional[str] = None) -> bytes:
     img_rgb = img.convert("RGB")
     channel = list(img_rgb.getchannel("G").getdata())
+    pairs = list(range(0, len(channel) - 1, 2))
+    if key:
+        order = shuffled_indices(len(pairs), key, salt="pvd")
+        pairs = [pairs[i] for i in order]
 
     bits = ""
     need_bits = 32  # header first
     have_len = False
-    for i in range(0, len(channel) - 1, 2):
+    for i in pairs:
         p1, p2 = channel[i], channel[i + 1]
-        d = abs(p1 - p2)
-        nbits = _bits_needed(d)
-        for L, U in RANGES:
+        d = abs(p1 - p2)  # d = observed absolute difference
+        nbits = _bits_needed(d)  # infer width from observed difference
+        for L, U in RANGES:  # L/U = bucket bounds
             if L <= d <= U:
                 v = d - L
                 bits += f"{v:0{nbits}b}"

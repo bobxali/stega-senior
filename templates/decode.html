@@ -5,17 +5,20 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-<nav>
-    <ul>
-        <li><a href="{{ url_for('index') }}">Encode</a></li>
-        <li><a href="{{ url_for('decode') }}">Decode</a></li>
-    </ul>
+<nav class="topnav">
+  <div class="brand">Steganography Studio</div>
+  <ul>
+      <li><a href="{{ url_for('index') }}">Encode</a></li>
+      <li><a href="{{ url_for('decode') }}" class="active">Decode</a></li>
+      <li><a href="{{ url_for('steganalysis') }}">Steganalysis</a></li>
+  </ul>
 </nav>
 <div class="container">
 <h1>Steganography Studio</h1>
 <p>Decode hidden messages from images.</p>
     <form method="POST" action="/decode" enctype="multipart/form-data">
         <label>Image</label><input type="file" name="image">
+        <label>Key (optional)</label><input type="password" name="key" value="{{ key_value or '' }}" placeholder="Required if encoded with a key">
         <label>Algorithm</label>
         <select name="algorithm">
             <option value="AUTO">Auto-Detect</option>
@@ -26,12 +29,17 @@
         <button type="submit">Decode</button>
     </form>
 
-    {% if message is not none %}
-    <h2>Decoded Message</h2>
-    {% if algorithm %}
-    <p><em>Algorithm: {{ algorithm }}</em></p>
-    {% endif %}
-    <pre>{{ message }}</pre>
+    {% if file_download %}
+      <h2>Extracted File</h2>
+      {% if algorithm %}<p><em>Algorithm: {{ algorithm }}</em></p>{% endif %}
+      <p>Saved as: {{ file_label or file_download }}</p>
+      <a class="btn" href="{{ url_for('uploaded_file', filename=file_download) }}" download>Download file</a>
+    {% elif message is not none %}
+      <h2>Decoded Message</h2>
+      {% if algorithm %}
+      <p><em>Algorithm: {{ algorithm }}</em></p>
+      {% endif %}
+      <pre>{{ message }}</pre>
     {% endif %}
 
     <p><a href="{{ url_for('index') }}">Back to encode</a></p>
